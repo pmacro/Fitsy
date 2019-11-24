@@ -497,22 +497,22 @@ public struct RecordMessage: FitMessage {
     
     for field in fields {
       switch field.number {
-      case 0:
+      case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
-      case 1:
+      case 0:
         self.latitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
-      case 2:
+      case 1:
         self.longitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
-      case 3:
-        self.distance = data[offset...].to(type: UInt32.self)
       case 5:
+        self.distance = data[offset...].to(type: UInt32.self)
+      case 19:
         self.totalCycles = data[offset...].to(type: UInt32.self)
-      case 9:
+      case 2:
         self.altitude = data[offset...].to(type: UInt16.self)
-      case 27:
+      case 3:
         self.heartRate = data[offset...].to(type: UInt8.self)
-      case 28:
+      case 4:
         self.cadence = data[offset...].to(type: UInt8.self)
       default:
         break
