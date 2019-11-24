@@ -490,7 +490,7 @@ public struct RecordMessage: FitMessage {
   public var distance: UInt32?
   public var heartRate: UInt8?
   public var cadence: UInt8?
-  public var altitude: UInt16?
+  public var altitude: Int16?
   public var totalCycles: UInt32?
   
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
