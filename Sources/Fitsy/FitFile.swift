@@ -11,11 +11,11 @@ public struct FitFile {
   
   let header: FitHeader
   
-  var fileIdMessage: FileIdMessage!
+  public var fileIdMessage: FileIdMessage!
   
   var messageDefinitions: [CChar : MessageDefinition] = [:]
   
-  var messages: [FitMessage] = []
+  public var messages: [FitMessage] = []
   
   public init?(url: URL) {
     if let data = FileManager.default.contents(atPath: url.path) {
