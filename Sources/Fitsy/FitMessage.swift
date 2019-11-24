@@ -30,7 +30,8 @@ public enum ActivityType: CChar {
   case transition
 }
 
-public enum FitEvent: CChar {
+public enum FitEvent: Int16 {
+  case invalid =                                                        0xFF
   case timer =                                                          0 // Group 0.  Start / stop_all
   case workout =                                                        3 // start / stop
   case workoutStep =                                                    4 // Start at beginning of workout.  Stop at end of each step.
@@ -69,7 +70,8 @@ public enum FitEvent: CChar {
   case commTimeout =                                                    47 // marker
 }
 
-public enum FitEventType: CChar {
+public enum FitEventType: Int16 {
+  case invalid =                                                        0xFF
   case start =                                                          0
   case stop =                                                           1
   case consecutiveDepreciated =                                         2
@@ -353,12 +355,11 @@ public struct ActivityMessage: FitMessage {
         self.type = type
       case 3:
         guard let typeInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: typeInt) else { return nil }
+        let event = FitEvent(rawValue: Int16(typeInt)) else { return nil }
         self.event = event
       case 4:
-        guard let eventInt = data[offset...].to(type: CChar.self),
-        let eventType = FitEventType(rawValue: eventInt) else { return nil }
-        self.eventType = eventType
+        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
       default:
         break
       }
@@ -396,12 +397,11 @@ public struct SessionMessage: FitMessage {
         self.totalElapsedTime = totalElapsedTime
       case 0:
         guard let eventInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: eventInt) else { return nil }
+        let event = FitEvent(rawValue: Int16(eventInt)) else { return nil }
         self.event = event
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self),
-        let eventType = FitEventType(rawValue: eventTypeInt) else { return nil }
-        self.eventType = eventType
+        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
       default:
         break
       }
@@ -434,13 +434,11 @@ public struct LapMessage: FitMessage {
         guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: eventInt) else { return nil }
-        self.event = event
+        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.event = FitEvent(rawValue: Int16(eventInt)) ?? .invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self),
-        let eventType = FitEventType(rawValue: eventTypeInt) else { return nil }
-        self.eventType = eventType
+        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
       default:
         break
       }
@@ -468,13 +466,11 @@ public struct LengthMessage: FitMessage {
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: eventInt) else { return nil }
-        self.event = event
+        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.event = FitEvent(rawValue: Int16(eventInt)) ?? FitEvent.invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self),
-        let eventType = FitEventType(rawValue: eventTypeInt) else { return nil }
-        self.eventType = eventType
+        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
       default:
         break
       }
@@ -547,13 +543,11 @@ public struct EventMessage: FitMessage {
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: eventInt) else { return nil }
-        self.event = event
+        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.event = FitEvent(rawValue: Int16(eventInt)) ?? FitEvent.invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self),
-        let eventType = FitEventType(rawValue: eventTypeInt) else { return nil }
-        self.eventType = eventType
+        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
+        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
       default:
         break
       }
