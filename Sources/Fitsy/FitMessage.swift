@@ -345,7 +345,7 @@ public struct ActivityMessage: FitMessage {
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 0:
         guard let totalTimerTime = data[offset...].to(type: UInt32.self) else { return nil }
-        self.totalTimerTime = totalTimerTime
+        self.totalTimerTime = totalTimerTime / 1000
       case 1:
         guard let sessionCount = data[offset...].to(type: UInt16.self) else { return nil }
         self.numberOfSessions = sessionCount
