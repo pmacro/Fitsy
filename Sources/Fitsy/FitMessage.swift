@@ -533,21 +533,36 @@ public struct RecordMessage: FitMessage {
 public struct EventMessage: FitMessage {
   public var size: Int
   
+  public let timestamp: Date
+  public let event: FitEvent
+  public let eventType: FitEventType
+
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
     
     for field in fields {
 
+      switch field.number {
+      case 253:
+        guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
+        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+      case 0:
+        guard let eventInt = data[offset...].to(type: CChar.self),
+        let event = FitEvent(rawValue: eventInt) else { return nil }
+        self.event = event
+      case 1:
+        guard let eventTypeInt = data[offset...].to(type: CChar.self),
+        let eventType = FitEventType(rawValue: eventTypeInt) else { return nil }
+        self.eventType = eventType
+      default:
+        break
+      }
     
       offset += Int(field.size)
     }
 
     self.size = fields.totalFieldSize
   }
-  
-  public let timestamp: Date
-  public let event: FitEvent
-  public let eventType: FitEventType
 }
 
 struct DeviceInfoMessage {
