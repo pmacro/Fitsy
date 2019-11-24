@@ -69,7 +69,7 @@ public enum FitEvent: CChar {
   case commTimeout =                                                    47 // marker
 }
 
-enum FitEventType: CChar {
+public enum FitEventType: CChar {
   case start =                                                          0
   case stop =                                                           1
   case consecutiveDepreciated =                                         2
@@ -82,7 +82,7 @@ enum FitEventType: CChar {
   case stopDisableAll =                                                 9
 }
 
-enum FitSport: Int {
+public enum FitSport: Int {
   case generic =                                                        0
   case running =                                                        1
   case cycling =                                                        2
@@ -136,18 +136,18 @@ enum FitSport: Int {
 
 }
 
-struct MessageDefinition {
+public struct MessageDefinition {
   
-  struct Field {
+  public struct Field {
     let number: UInt8
     let size: CChar
     let baseType: CChar
   }
     
-  var fields: [Field] = []
-  let localMessageType: CChar
-  let globalMessageNumber: UInt16
-  let size: Int
+  public var fields: [Field] = []
+  public let localMessageType: CChar
+  public let globalMessageNumber: UInt16
+  public let size: Int
   
   public init?(data: Data, bytePosition: Int, headerByte: CChar) {
     var offset = bytePosition
@@ -255,18 +255,18 @@ extension FitFile {
   }
 }
 
-protocol FitMessage {
+public protocol FitMessage {
   var size: Int { get }
   init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field])
 }
 
-struct FileIdMessage: FitMessage {
-  var type: FileType!
-  var manufacturer: UInt16!
-  var product: UInt16!
-  var serialNumber: UInt32!
-  var timeCreated: Date!
-  var size: Int = 0
+public struct FileIdMessage: FitMessage {
+  public var type: FileType!
+  public var manufacturer: UInt16!
+  public var product: UInt16!
+  public var serialNumber: UInt32!
+  public var timeCreated: Date!
+  public var size: Int = 0
   
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
@@ -322,16 +322,16 @@ struct DummyMessage: FitMessage {
   }
 }
 
-struct ActivityMessage: FitMessage {
-  var size: Int
+public struct ActivityMessage: FitMessage {
+  public var size: Int
 
-  var timestamp: Date!
-  var numberOfSessions: UInt16!
-  var type: ActivityType!
-  var event: FitEvent!
-  var eventType: FitEventType!
+  public var timestamp: Date!
+  public var numberOfSessions: UInt16!
+  public var type: ActivityType!
+  public var event: FitEvent!
+  public var eventType: FitEventType!
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
 
     for field in fields {
@@ -365,17 +365,17 @@ struct ActivityMessage: FitMessage {
   }
 }
 
-struct SessionMessage: FitMessage {
-  var size: Int
+public struct SessionMessage: FitMessage {
+  public var size: Int
     
-  var timestamp: Date!
-  var startTime: Date!
-  var totalElapsedTime: UInt32!
-  var sport: FitSport!
-  var event: FitEvent!
-  var eventType: FitEventType!
+  public var timestamp: Date!
+  public var startTime: Date!
+  public var totalElapsedTime: UInt32!
+  public var sport: FitSport!
+  public var event: FitEvent!
+  public var eventType: FitEventType!
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
 
     for field in fields {
@@ -408,16 +408,16 @@ struct SessionMessage: FitMessage {
   }
 }
 
-struct LapMessage: FitMessage {
-  var size: Int
+public struct LapMessage: FitMessage {
+  public var size: Int
 
-  var timestamp: Date!
-  var startTime: Date!
+  public var timestamp: Date!
+  public var startTime: Date!
 
-  var event: FitEvent!
-  var eventType: FitEventType!
+  public var event: FitEvent!
+  public var eventType: FitEventType!
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
 
     for field in fields {
@@ -447,14 +447,14 @@ struct LapMessage: FitMessage {
   }
 }
 
-struct LengthMessage: FitMessage {
-  var size: Int
-
-  var timestamp: Date!
-  var event: FitEvent!
-  var eventType: FitEventType!
+public struct LengthMessage: FitMessage {
+  public var size: Int
+ 
+  public var timestamp: Date!
+  public var event: FitEvent!
+  public var eventType: FitEventType!
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
 
     for field in fields {
@@ -481,18 +481,18 @@ struct LengthMessage: FitMessage {
   }
 }
 
-struct RecordMessage: FitMessage {
-  var size: Int
-  var timestamp: Date!
-  var latitude: Int32?
-  var longitude: Int32?
-  var distance: UInt32?
-  var heartRate: UInt8?
-  var cadence: UInt8?
-  var altitude: UInt16?
-  var totalCycles: UInt32?
+public struct RecordMessage: FitMessage {
+  public var size: Int
+  public var timestamp: Date!
+  public var latitude: Int32?
+  public var longitude: Int32?
+  public var distance: UInt32?
+  public var heartRate: UInt8?
+  public var cadence: UInt8?
+  public var altitude: UInt16?
+  public var totalCycles: UInt32?
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
     
     for field in fields {
@@ -525,17 +525,17 @@ struct RecordMessage: FitMessage {
   }
 }
 
-struct EventMessage {
-  let timestamp: Date
-  let event: FitEvent
-  let eventType: FitEventType
+public struct EventMessage {
+  public let timestamp: Date
+  public let event: FitEvent
+  public let eventType: FitEventType
 }
 
 struct DeviceInfoMessage {
-  let timestamp: Date
+  public let timestamp: Date
 }
 
 struct HRVMessage {
-  let time: UInt16
+  public let time: UInt16
 }
 
