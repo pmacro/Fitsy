@@ -484,8 +484,8 @@ public struct LengthMessage: FitMessage {
 public struct RecordMessage: FitMessage {
   public var size: Int
   public var timestamp: Date!
-  public var latitude: Int32?
-  public var longitude: Int32?
+  public var latitude: Double?
+  public var longitude: Double?
   public var distance: UInt32?
   public var heartRate: UInt8?
   public var cadence: UInt8?
@@ -501,9 +501,9 @@ public struct RecordMessage: FitMessage {
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 1:
-        self.latitude = data[offset...].to(type: Int32.self)
+        self.latitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
       case 2:
-        self.longitude = data[offset...].to(type: Int32.self)
+        self.longitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
       case 3:
         self.distance = data[offset...].to(type: UInt32.self)
       case 5:
