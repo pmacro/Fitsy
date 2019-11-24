@@ -241,6 +241,8 @@ extension FitFile {
       messageType = LapMessage.self
     case .record:
       messageType = RecordMessage.self
+    case .event:
+      messageType = EventMessage.self
     default:
       print("Skipping message type \(messageNumber ?? .invalid) as Fitsy has not implemented this type.")
       return DummyMessage(messageType: messageNumber ?? .invalid,
@@ -324,7 +326,7 @@ struct DummyMessage: FitMessage {
 
 public struct ActivityMessage: FitMessage {
   public var size: Int
-
+  public var totalTimerTime: UInt32!
   public var timestamp: Date!
   public var numberOfSessions: UInt16!
   public var type: ActivityType!
@@ -339,6 +341,9 @@ public struct ActivityMessage: FitMessage {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+      case 0:
+        guard let totalTimerTime = data[offset...].to(type: UInt32.self) else { return nil }
+        self.totalTimerTime = totalTimerTime
       case 1:
         guard let sessionCount = data[offset...].to(type: UInt16.self) else { return nil }
         self.numberOfSessions = sessionCount
@@ -525,7 +530,21 @@ public struct RecordMessage: FitMessage {
   }
 }
 
-public struct EventMessage {
+public struct EventMessage: FitMessage {
+  public var size: Int
+  
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+    var offset = bytePosition
+    
+    for field in fields {
+
+    
+      offset += Int(field.size)
+    }
+
+    self.size = fields.totalFieldSize
+  }
+  
   public let timestamp: Date
   public let event: FitEvent
   public let eventType: FitEventType
