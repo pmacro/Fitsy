@@ -510,7 +510,9 @@ public struct RecordMessage: FitMessage {
       case 19:
         self.totalCycles = data[offset...].to(type: UInt32.self)
       case 2:
-        self.altitude = data[offset...].to(type: UInt16.self)
+        if let val = data[offset...].to(type: UInt16.self) {
+          self.altitude = (val / 5) - 500
+        }
       case 3:
         self.heartRate = data[offset...].to(type: UInt8.self)
       case 4:

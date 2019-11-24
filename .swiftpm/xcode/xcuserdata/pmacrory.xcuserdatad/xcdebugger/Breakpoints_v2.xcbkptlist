@@ -40,7 +40,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "4D746112-90D2-4809-924D-CFACAD39B923"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Sources/Fitsy/FitFile.swift"
@@ -94,26 +94,9 @@
             filePath = "Sources/Fitsy/FitMessage.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "542"
-            endingLineNumber = "542"
+            startingLineNumber = "544"
+            endingLineNumber = "544"
             landmarkName = "init(data:bytePosition:fields:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "D57B3F06-1C2F-4D37-8340-4A62D203D947"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            condition = "offset == 7869"
-            continueAfterRunningActions = "No"
-            filePath = "Sources/Fitsy/FitMessage.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "210"
-            endingLineNumber = "210"
-            landmarkName = "inflateMessage(from:bytePosition:headerByte:compressed:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
