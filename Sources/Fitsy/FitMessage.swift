@@ -382,6 +382,7 @@ public struct SessionMessage: FitMessage {
   public var sport: FitSport!
   public var event: FitEvent!
   public var eventType: FitEventType!
+  public var totalCalories: UInt16?
   
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
@@ -404,6 +405,8 @@ public struct SessionMessage: FitMessage {
       case 1:
         guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
         self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
+      case 11:
+        self.totalCalories = data[offset...].to(type: UInt16.self)
       default:
         break
       }
