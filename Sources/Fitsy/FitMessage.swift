@@ -533,9 +533,9 @@ public struct RecordMessage: FitMessage {
 public struct EventMessage: FitMessage {
   public var size: Int
   
-  public let timestamp: Date
-  public let event: FitEvent
-  public let eventType: FitEventType
+  public var timestamp: Date!
+  public var event: FitEvent!
+  public var eventType: FitEventType!
 
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
     var offset = bytePosition
