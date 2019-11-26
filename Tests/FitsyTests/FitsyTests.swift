@@ -38,7 +38,7 @@ final class FitsyTests: XCTestCase {
     var activityMessage = ActivityMessage(totalTimerTime: 1488,
                                           timestamp: Date(timeIntervalSinceReferenceDate: 806010397),
                                           numberOfSessions: 1,
-                                          type: .generic,
+                                          type: .manual,
                                           event: .workout,
                                           eventType: .stop)
     activityMessage.localMessageNumber = 11
@@ -89,7 +89,7 @@ final class FitsyTests: XCTestCase {
     let message = ActivityMessage(totalTimerTime: 1000000,
                                   timestamp: Date(),
                                   numberOfSessions: 1,
-                                  type: .transition,
+                                  type: .manual,
                                   event: .cadenceHighAlert,
                                   eventType: .marker)
         
@@ -182,9 +182,9 @@ final class FitsyTests: XCTestCase {
     let activityMessage = ActivityMessage(totalTimerTime: 101,
                                           timestamp: Date(),
                                           numberOfSessions: 1,
-                                          type: .running,
-                                          event: .batteryLow,
-                                          eventType: .start)
+                                          type: .manual,
+                                          event: .activity,
+                                          eventType: .stop)
     
     let recordMessage = RecordMessage(timestamp: Date(),
                                       latitude: 45,

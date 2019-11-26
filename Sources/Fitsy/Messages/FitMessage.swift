@@ -23,11 +23,10 @@ public enum FileType: Int {
   case activity =                                                       4
 }
 
-public enum ActivityType: CChar {
-  case generic =                                                        0
-  case running
-  case cycling
-  case transition
+public enum ActivityType: UInt8 {
+  case invalid =                                                        0xFF
+  case manual  =                                                        0
+  case autoMultiSport =                                                 1
 }
 
 public enum FitEvent: UInt8 {

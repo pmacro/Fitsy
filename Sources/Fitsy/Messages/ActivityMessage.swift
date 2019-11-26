@@ -65,7 +65,7 @@ public struct ActivityMessage: FitMessage {
         guard let sessionCount = data[offset...].to(type: UInt16.self) else { return nil }
         self.numberOfSessions = sessionCount
       case 2:
-        guard let activityTypeInt = data[offset...].to(type: CChar.self),
+        guard let activityTypeInt = data[offset...].to(type: UInt8.self),
         let type = ActivityType(rawValue: activityTypeInt) else { return nil }
         self.type = type
       case 3:
@@ -97,7 +97,7 @@ public struct ActivityMessage: FitMessage {
                                      baseType: FitBaseType.uint16.rawValue),
                                .init(number: 2,
                                      size: UInt8(MemoryLayout.size(ofValue: type.rawValue)),
-                                     baseType: FitBaseType.sint8.rawValue),
+                                     baseType: FitBaseType.uint8.rawValue),
                                .init(number: 3,
                                      size: UInt8(MemoryLayout.size(ofValue: event.rawValue)),
                                      baseType: FitBaseType.sint8.rawValue),

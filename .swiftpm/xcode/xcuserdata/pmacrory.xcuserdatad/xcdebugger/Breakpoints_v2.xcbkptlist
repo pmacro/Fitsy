@@ -296,7 +296,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "FA467E5E-B44D-4956-8A97-F50DF3A79B74"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Tests/FitsyTests/FitsyTests.swift"
@@ -334,10 +334,10 @@
             filePath = "Sources/Fitsy/Messages/FitMessage.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "150"
-            endingLineNumber = "150"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            startingLineNumber = "149"
+            endingLineNumber = "149"
+            landmarkName = "HRVMessage"
+            landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
