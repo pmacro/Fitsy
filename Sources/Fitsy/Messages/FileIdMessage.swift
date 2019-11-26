@@ -33,12 +33,12 @@ public struct FileIdMessage: Equatable, FitMessage {
   }
   
   public init(type: FileType,
-              manufacturer: UInt16,
+              manufacturer: FitManufacturer,
               product: UInt16,
               serialNumber: UInt32,
               timeCreated: Date) {
     self.type = type
-    self.manufacturer = manufacturer
+    self.manufacturer = manufacturer.rawValue
     self.product = product
     self.serialNumber = serialNumber
     self.timeCreated = timeCreated

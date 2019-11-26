@@ -235,3 +235,31 @@ extension FitFile {
                             localMessageNumber: messageDefinition.localMessageType)
   }
 }
+
+// Convenience methods for API users.
+extension FitFile {
+  
+  mutating public func add(message: FitMessage) {
+    var localMessageId: Int8
+    var shouldAddDefinition = false
+    
+    if let existingDef = messageDefinitions.firstIndex(where: { $0.1.globalMessageNumber == message.globalMessageNumber.rawValue }) {
+      localMessageId = messageDefinitions[existingDef].key
+    } else {
+      localMessageId = Int8(messageDefinitions.count) + 1
+      shouldAddDefinition = true
+    }
+    
+    var messageCopy = message
+//    definition.localMessageType = localMessageId
+    messageCopy.localMessageNumber = localMessageId
+    
+    if shouldAddDefinition {
+      messageDefinitions[localMessageId] = messageCopy.generateMessageDefinition()
+    }
+    
+//    messageDefinitions[definition.localMessageType] = definition
+    messages.append(messageCopy)
+  }
+  
+}

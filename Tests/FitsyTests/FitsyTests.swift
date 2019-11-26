@@ -31,7 +31,7 @@ final class FitsyTests: XCTestCase {
   
   func testTwoMessageFile() {
     var file = FitFile(fileIdMessage: FileIdMessage(type: .activity,
-                                                    manufacturer: 12,
+                                                    manufacturer: FitManufacturer.invalid,
                                                     product: 21,
                                                     serialNumber: 999,
                                                     timeCreated: Date()))
@@ -64,7 +64,7 @@ final class FitsyTests: XCTestCase {
   
   func testFileIdMessageSavingAndRestoring() {
     let message = FileIdMessage(type: .activity,
-                                manufacturer: 1234,
+                                manufacturer: FitManufacturer.invalid,
                                 product: 4321,
                                 serialNumber: 3333,
                                 timeCreated: Date())
@@ -170,8 +170,66 @@ final class FitsyTests: XCTestCase {
     XCTAssert(message.heartRate == restoredMessage?.heartRate)
     XCTAssert(message.cadence == restoredMessage?.cadence)
   }
+  
+  func testNewFileFromScratch() {
+    let fileIdMessage = FileIdMessage(type: .activity,
+                                      manufacturer: FitManufacturer.invalid,
+                                      product: 0,
+                                      serialNumber: 0,
+                                      timeCreated: Date())
+    var file = FitFile(fileIdMessage: fileIdMessage)
+    
+    let activityMessage = ActivityMessage(totalTimerTime: 101,
+                                          timestamp: Date(),
+                                          numberOfSessions: 1,
+                                          type: .running,
+                                          event: .batteryLow,
+                                          eventType: .start)
+    
+    let recordMessage = RecordMessage(timestamp: Date(),
+                                      latitude: 45,
+                                      longitude: 45,
+                                      distance: 10,
+                                      speed: 10,
+                                      totalCycles: 10,
+                                      altitude: 500,
+                                      heartRate: 10,
+                                      cadence: 10)
+    
+    let recordMessage2 = RecordMessage(timestamp: Date(),
+                                      latitude: 70,
+                                      longitude: 70,
+                                      distance: 100,
+                                      speed: 100,
+                                      totalCycles: 100,
+                                      altitude: 900,
+                                      heartRate: 100,
+                                      cadence: 100)
+    
+    let sessionMessage = SessionMessage(timestamp: Date(),
+                                        startTime: Date(),
+                                        totalElapsedTime: 100,
+                                        sport: .running,
+                                        event: .timer,
+                                        eventType: .start)
 
-    static var allTests = [
-        ("testExample", testExample),
-    ]
+    file.add(message: activityMessage)
+    file.add(message: sessionMessage)
+    file.add(message: recordMessage)
+    file.add(message: recordMessage2)
+    file.add(message: recordMessage2)
+
+    let restoredFile = FitFile(data: try! file.toData())
+    
+    XCTAssert(restoredFile?.messageDefinitions.count == 4)
+    XCTAssert(restoredFile?.messages.first is ActivityMessage)
+    XCTAssert(restoredFile?.messages[1] is SessionMessage)
+    XCTAssert(restoredFile?.messages[2] is RecordMessage)
+    XCTAssert(restoredFile?.messages[3] is RecordMessage)
+    XCTAssert(restoredFile?.messages[4] is RecordMessage)
+  }
+
+  static var allTests = [
+    ("testExample", testExample),
+  ]
 }

@@ -144,7 +144,7 @@ public protocol FitFileEntity {
 public protocol FitMessage: FitFileEntity, MessageDefinitionGenerator {
   var size: Int { get }
   var globalMessageNumber: MessageNumber { get }
-  var localMessageNumber: CChar? { get }
+  var localMessageNumber: CChar? { set get }
   init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar)
 }
 
