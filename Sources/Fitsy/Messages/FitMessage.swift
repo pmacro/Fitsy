@@ -30,7 +30,7 @@ public enum ActivityType: CChar {
   case transition
 }
 
-public enum FitEvent: Int16 {
+public enum FitEvent: UInt8 {
   case invalid =                                                        0xFF
   case timer =                                                          0 // Group 0.  Start / stop_all
   case workout =                                                        3 // start / stop
@@ -70,7 +70,7 @@ public enum FitEvent: Int16 {
   case commTimeout =                                                    47 // marker
 }
 
-public enum FitEventType: Int16 {
+public enum FitEventType: UInt8 {
   case invalid =                                                        0xFF
   case start =                                                          0
   case stop =                                                           1
@@ -138,18 +138,41 @@ public enum FitSport: Int {
 
 }
 
-public struct MessageDefinition {
-  
+public struct MessageDefinition: FitFileEntity {
   public struct Field {
     let number: UInt8
-    let size: CChar
-    let baseType: CChar
+    let size: UInt8
+    let baseType: UInt8
   }
     
   public var fields: [Field] = []
   public let localMessageType: CChar
   public let globalMessageNumber: UInt16
   public let size: Int
+  
+  public var data: Data {
+                             // Reserved byte.
+    var result = Data(from: CChar(0))
+                             // Little endian
+               + Data(from: CChar(0x00))
+               + Data(from: globalMessageNumber)
+               + Data(from: UInt8(fields.count))
+    
+    for field in fields {
+      result += Data(fromArray: [field.number, field.size, field.baseType])
+    }
+    
+    return result
+  }
+  
+  public init(fields: [Field],
+              localMessageType: CChar,
+              globalMessageNumber: UInt16) {
+    self.fields = fields
+    self.localMessageType = localMessageType
+    self.globalMessageNumber = globalMessageNumber
+    self.size = (fields.count * 3) + 2 + MemoryLayout.size(ofValue: globalMessageNumber)
+  }
   
   public init?(data: Data, bytePosition: Int, headerByte: CChar) {
     var offset = bytePosition
@@ -182,9 +205,9 @@ public struct MessageDefinition {
     for _ in 0..<numberOfFields {
       guard let num = data[offset...].to(type: UInt8.self) else { return nil }
       offset += 1
-      guard let size = data[offset...].to(type: CChar.self) else { return nil }
+      guard let size = data[offset...].to(type: UInt8.self) else { return nil }
       offset += 1
-      guard let bType = data[offset...].to(type: CChar.self) else { return nil }
+      guard let bType = data[offset...].to(type: UInt8.self) else { return nil }
       offset += 1
       
       fields.append(Field(number: num, size: size, baseType: bType))
@@ -227,12 +250,14 @@ extension FitFile {
                      data: Data,
                      bytePosition: Int) -> FitMessage? {
     
-    let messageNumber = MessageNumber(rawValue: UInt16(messageDefinition.globalMessageNumber))
+    let messageNumber = MessageNumber(rawValue: messageDefinition.globalMessageNumber)
     let messageType: FitMessage.Type
     
     switch messageNumber {
     case .fileId:
       messageType = FileIdMessage.self
+    case .deviceInfo:
+      messageType = DeviceInfoMessage.self
     case .activity:
       messageType = ActivityMessage.self
     case .session:
@@ -252,21 +277,33 @@ extension FitFile {
       return DummyMessage(messageType: messageNumber ?? .invalid,
                           data: data,
                           bytePosition: bytePosition,
-                          fields: messageDefinition.fields)
+                          fields: messageDefinition.fields,
+                          localMessageNumber: messageDefinition.localMessageType)
     }
     
     return messageType.init(data: data,
                             bytePosition: bytePosition,
-                            fields: messageDefinition.fields)
+                            fields: messageDefinition.fields,
+                            localMessageNumber: messageDefinition.localMessageType)
   }
 }
 
-public protocol FitMessage {
-  var size: Int { get }
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field])
+public protocol MessageDefinitionGenerator {
+  func generateMessageDefinition() -> MessageDefinition
 }
 
-public struct FileIdMessage: FitMessage {
+public protocol FitFileEntity {
+  var data: Data { get }
+}
+
+public protocol FitMessage: FitFileEntity, MessageDefinitionGenerator {
+  var size: Int { get }
+  var globalMessageNumber: MessageNumber { get }
+  var localMessageNumber: CChar? { get }
+  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar)
+}
+
+public struct FileIdMessage: Equatable, FitMessage {
   public var type: FileType!
   public var manufacturer: UInt16!
   public var product: UInt16!
@@ -274,7 +311,45 @@ public struct FileIdMessage: FitMessage {
   public var timeCreated: Date!
   public var size: Int = 0
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var globalMessageNumber: MessageNumber { .fileId }
+  public var localMessageNumber: CChar?
+  
+  public var data: Data {
+    let typeData = Data(from: Int8(type.rawValue))
+    let manufacturerData = Data(from: manufacturer)
+    let productData = Data(from: product)
+    let serialNumberData = Data(from: serialNumber)
+    let timeCreatedData = Data(from: UInt32(timeCreated.timeIntervalSince1970))
+    
+    return typeData
+           + manufacturerData
+           + productData
+           + serialNumberData
+           + timeCreatedData
+  }
+  
+  public init(type: FileType,
+              manufacturer: UInt16,
+              product: UInt16,
+              serialNumber: UInt32,
+              timeCreated: Date) {
+    self.type = type
+    self.manufacturer = manufacturer
+    self.product = product
+    self.serialNumber = serialNumber
+    self.timeCreated = timeCreated
+    self.localMessageNumber = 0
+    
+    self.size = MemoryLayout.size(ofValue: UInt8(type.rawValue))
+              + MemoryLayout.size(ofValue: manufacturer)
+              + MemoryLayout.size(ofValue: product)
+              + MemoryLayout.size(ofValue: serialNumber)
+              // timeCreated is stored as UInt32, not Date.
+              + MemoryLayout.size(ofValue: UInt32())
+  }
+  
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
     
     for field in fields {
@@ -308,6 +383,27 @@ public struct FileIdMessage: FitMessage {
     
     self.size = offset - bytePosition
   }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [.init(number: 0,
+                                     size: UInt8(MemoryLayout.size(ofValue: UInt8(type.rawValue))),
+                                     baseType: FitBaseType.uint8.rawValue),
+                               .init(number: 1,
+                                     size: UInt8(MemoryLayout.size(ofValue: manufacturer)),
+                                     baseType: FitBaseType.uint16.rawValue),
+                               .init(number: 2,
+                                     size: UInt8(MemoryLayout.size(ofValue: product)),
+                                     baseType: FitBaseType.uint16.rawValue),
+                               .init(number: 3,
+                                     size: UInt8(MemoryLayout.size(ofValue: serialNumber)),
+                                     baseType: FitBaseType.uint32.rawValue),
+                               .init(number: 4,
+                                     size: 4,
+                                     baseType: FitBaseType.uint32.rawValue)
+                              ],
+                      localMessageType: localMessageNumber ?? -1,
+                      globalMessageNumber: MessageNumber.fileId.rawValue)
+  }
 }
 
 ///
@@ -316,15 +412,32 @@ public struct FileIdMessage: FitMessage {
 ///
 struct DummyMessage: FitMessage {
   var size: Int = 0
-  var messageType: MessageNumber!
+  public var globalMessageNumber: MessageNumber
+  public var localMessageNumber: CChar?
+  public var data: Data { Data() }
   
-  init?(messageType: MessageNumber, data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
-    self.init(data: data, bytePosition: bytePosition, fields: fields)
-    self.messageType = messageType
+  init?(messageType: MessageNumber,
+        data: Data,
+        bytePosition: Int,
+        fields: [MessageDefinition.Field],
+        localMessageNumber: CChar) {
+    self.init(data: data,
+              bytePosition: bytePosition,
+              fields: fields,
+              localMessageNumber: localMessageNumber)
+    self.globalMessageNumber = messageType
   }
   
-  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
+    self.globalMessageNumber = .invalid
     size = fields.totalFieldSize
+  }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: globalMessageNumber.rawValue)
   }
 }
 
@@ -337,7 +450,41 @@ public struct ActivityMessage: FitMessage {
   public var event: FitEvent!
   public var eventType: FitEventType!
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var data: Data {
+    return Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+         + Data(from: totalTimerTime * 1000)
+         + Data(from: numberOfSessions)
+         + Data(from: type.rawValue)
+         + Data(from: event.rawValue)
+         + Data(from: eventType.rawValue)
+  }
+  
+  public var globalMessageNumber: MessageNumber { .activity }
+  public var localMessageNumber: CChar?
+  
+  public init(totalTimerTime: UInt32,
+              timestamp: Date,
+              numberOfSessions: UInt16,
+              type: ActivityType,
+              event: FitEvent,
+              eventType: FitEventType) {
+    self.totalTimerTime = totalTimerTime
+    self.timestamp = timestamp
+    self.numberOfSessions = numberOfSessions
+    self.type = type
+    self.event = event
+    self.eventType = eventType
+    
+    self.size = MemoryLayout.size(ofValue: totalTimerTime * 1000)
+              + MemoryLayout.size(ofValue: UInt32(timestamp.timeIntervalSinceReferenceDate))
+              + MemoryLayout.size(ofValue: numberOfSessions)
+              + MemoryLayout.size(ofValue: UInt8(type.rawValue))
+              + MemoryLayout.size(ofValue: UInt8(event.rawValue))
+              + MemoryLayout.size(ofValue: UInt8(eventType.rawValue))
+  }
+
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
 
     for field in fields {
@@ -352,16 +499,16 @@ public struct ActivityMessage: FitMessage {
         guard let sessionCount = data[offset...].to(type: UInt16.self) else { return nil }
         self.numberOfSessions = sessionCount
       case 2:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self),
-        let type = ActivityType(rawValue: eventTypeInt) else { return nil }
+        guard let activityTypeInt = data[offset...].to(type: CChar.self),
+        let type = ActivityType(rawValue: activityTypeInt) else { return nil }
         self.type = type
       case 3:
-        guard let typeInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: Int16(typeInt)) else { return nil }
+        guard let typeInt = data[offset...].to(type: UInt8.self),
+        let event = FitEvent(rawValue: typeInt) else { return nil }
         self.event = event
       case 4:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
+        guard let eventTypeInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.eventType = FitEventType(rawValue: eventTypeInt) ?? .invalid
       default:
         break
       }
@@ -371,50 +518,29 @@ public struct ActivityMessage: FitMessage {
     
     self.size = fields.totalFieldSize
   }
-}
-
-public struct SessionMessage: FitMessage {
-  public var size: Int
-    
-  public var timestamp: Date!
-  public var startTime: Date!
-  public var totalElapsedTime: UInt32!
-  public var sport: FitSport!
-  public var event: FitEvent!
-  public var eventType: FitEventType!
-  public var totalCalories: UInt16?
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
-    var offset = bytePosition
-
-    for field in fields {
-      switch field.number {
-      case 253:
-        guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
-      case 2:
-        guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
-      case 7:
-        guard let totalElapsedTime = data[offset...].to(type: UInt32.self) else { return nil }
-        self.totalElapsedTime = totalElapsedTime
-      case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self),
-        let event = FitEvent(rawValue: Int16(eventInt)) else { return nil }
-        self.event = event
-      case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
-      case 11:
-        self.totalCalories = data[offset...].to(type: UInt16.self)
-      default:
-        break
-      }
-      
-      offset += Int(field.size)
-    }
-    
-    self.size = fields.totalFieldSize
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [.init(number: 253,
+                                     size: UInt8(MemoryLayout.size(ofValue: UInt32())),
+                                     baseType: FitBaseType.uint32.rawValue),
+                               .init(number: 0,
+                                     size: UInt8(MemoryLayout.size(ofValue: totalTimerTime * 1000)),
+                                     baseType: FitBaseType.uint32.rawValue),
+                               .init(number: 1,
+                                     size: UInt8(MemoryLayout.size(ofValue: numberOfSessions)),
+                                     baseType: FitBaseType.uint16.rawValue),
+                               .init(number: 2,
+                                     size: UInt8(MemoryLayout.size(ofValue: type.rawValue)),
+                                     baseType: FitBaseType.sint8.rawValue),
+                               .init(number: 3,
+                                     size: UInt8(MemoryLayout.size(ofValue: event.rawValue)),
+                                     baseType: FitBaseType.sint8.rawValue),
+                               .init(number: 4,
+                                     size: UInt8(MemoryLayout.size(ofValue: eventType.rawValue)),
+                                     baseType: FitBaseType.sint8.rawValue)
+                              ],
+                      localMessageType: localMessageNumber ?? -1,
+                      globalMessageNumber: MessageNumber.activity.rawValue)
   }
 }
 
@@ -427,7 +553,15 @@ public struct LapMessage: FitMessage {
   public var event: FitEvent!
   public var eventType: FitEventType!
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var data: Data {
+    Data()
+  }
+  
+  public var globalMessageNumber: MessageNumber { .lap }
+  public var localMessageNumber: CChar?
+
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
 
     for field in fields {
@@ -439,11 +573,11 @@ public struct LapMessage: FitMessage {
         guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.event = FitEvent(rawValue: Int16(eventInt)) ?? .invalid
+        guard let eventInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.event = FitEvent(rawValue: eventInt) ?? .invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
+        guard let eventTypeInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.eventType = FitEventType(rawValue: eventTypeInt) ?? .invalid
       default:
         break
       }
@@ -452,6 +586,12 @@ public struct LapMessage: FitMessage {
     }
     
     self.size = fields.totalFieldSize
+  }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: MessageNumber.lap.rawValue)
   }
 }
 
@@ -462,7 +602,15 @@ public struct LengthMessage: FitMessage {
   public var event: FitEvent!
   public var eventType: FitEventType!
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var data: Data {
+    Data()
+  }
+  
+  public var globalMessageNumber: MessageNumber { .length }
+  public var localMessageNumber: CChar?
+
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
 
     for field in fields {
@@ -471,11 +619,11 @@ public struct LengthMessage: FitMessage {
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.event = FitEvent(rawValue: Int16(eventInt)) ?? FitEvent.invalid
+        guard let eventInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.event = FitEvent(rawValue: eventInt) ?? FitEvent.invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
+        guard let eventTypeInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.eventType = FitEventType(rawValue: eventTypeInt) ?? .invalid
       default:
         break
       }
@@ -484,6 +632,12 @@ public struct LengthMessage: FitMessage {
     }
     
     self.size = fields.totalFieldSize
+  }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: MessageNumber.length.rawValue)
   }
 }
 
@@ -498,7 +652,15 @@ public struct RecordMessage: FitMessage {
   public var altitude: Int16?
   public var totalCycles: UInt32?
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var data: Data {
+    Data()
+  }
+  
+  public var globalMessageNumber: MessageNumber { .record }
+  public var localMessageNumber: CChar?
+
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
     
     for field in fields {
@@ -531,6 +693,12 @@ public struct RecordMessage: FitMessage {
     
     self.size = fields.totalFieldSize
   }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: MessageNumber.record.rawValue)
+  }
 }
 
 public struct EventMessage: FitMessage {
@@ -539,8 +707,16 @@ public struct EventMessage: FitMessage {
   public var timestamp: Date!
   public var event: FitEvent!
   public var eventType: FitEventType!
+  
+  public var data: Data {
+    Data()
+  }
+  
+  public var globalMessageNumber: MessageNumber { .event }
+  public var localMessageNumber: CChar?
 
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
     
     for field in fields {
@@ -548,13 +724,13 @@ public struct EventMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceReferenceDate: -347241600 + TimeInterval(timestampInt))
       case 0:
-        guard let eventInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.event = FitEvent(rawValue: Int16(eventInt)) ?? FitEvent.invalid
+        guard let eventInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.event = FitEvent(rawValue: eventInt) ?? FitEvent.invalid
       case 1:
-        guard let eventTypeInt = data[offset...].to(type: CChar.self) else { return nil }
-        self.eventType = FitEventType(rawValue: Int16(eventTypeInt)) ?? .invalid
+        guard let eventTypeInt = data[offset...].to(type: UInt8.self) else { return nil }
+        self.eventType = FitEventType(rawValue: eventTypeInt) ?? .invalid
       default:
         break
       }
@@ -563,6 +739,12 @@ public struct EventMessage: FitMessage {
     }
 
     self.size = fields.totalFieldSize
+  }
+  
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: MessageNumber.event.rawValue)
   }
 }
 
@@ -576,7 +758,15 @@ public struct TotalsMessage: FitMessage {
   public var elapsedTime: UInt32?
   public var activeTime: UInt32?
   
-  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field]) {
+  public var data: Data {
+    Data()
+  }
+  
+  public var globalMessageNumber: MessageNumber { .totals }
+  public var localMessageNumber: CChar?
+
+  public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
     var offset = bytePosition
     
     for field in fields {
@@ -603,14 +793,108 @@ public struct TotalsMessage: FitMessage {
     }
 
     self.size = fields.totalFieldSize
-
   }
   
+  public func generateMessageDefinition() -> MessageDefinition {
+    MessageDefinition(fields: [],
+                      localMessageType: 0,
+                      globalMessageNumber: MessageNumber.totals.rawValue)
+  }
   
 }
 
-struct DeviceInfoMessage {
-  public let timestamp: Date
+public struct DeviceInfoMessage: FitMessage {
+  public var size: Int
+  
+  public var timestamp: Date!
+  public var serialNumber: UInt32?
+  public var manufacturer: FitManufacturer?
+  
+  public var globalMessageNumber: MessageNumber = .deviceInfo
+  
+  public var localMessageNumber: CChar?
+  
+  public var data: Data {
+    var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+    
+    if let serialNumber = serialNumber {
+      result += Data(from: serialNumber)
+    }
+    
+    if let manufacturer = manufacturer {
+      result += Data(from: manufacturer.rawValue)
+    }
+    
+    return result
+  }
+  
+  public init(timestamp: Date, serialNumber: UInt32? = nil, manufacturer: FitManufacturer? = nil) {
+    self.timestamp = timestamp
+    self.serialNumber = serialNumber
+    self.manufacturer = manufacturer
+    
+    self.size = MemoryLayout.size(ofValue: UInt32())
+    
+    if let serialNumber = serialNumber {
+      self.size += MemoryLayout.size(ofValue: serialNumber)
+    }
+    
+    if let manufacturer = manufacturer {
+      self.size += MemoryLayout.size(ofValue: manufacturer.rawValue)
+    }
+  }
+  
+  public init?(data: Data,
+               bytePosition: Int,
+               fields: [MessageDefinition.Field],
+               localMessageNumber: CChar) {
+    self.localMessageNumber = localMessageNumber
+    var offset = bytePosition
+    
+    for field in fields {
+
+      switch field.number {
+      case 253:
+        guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
+        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+      case 2:
+        guard let manufacturerInt = data[offset...].to(type: UInt16.self) else { break }
+        self.manufacturer = FitManufacturer(rawValue: manufacturerInt)
+      case 3:
+        self.serialNumber = data[offset...].to(type: UInt32.self)
+      default:
+        break
+      }
+    
+      offset += Int(field.size)
+    }
+
+    self.size = fields.totalFieldSize
+  }
+    
+  public func generateMessageDefinition() -> MessageDefinition {
+    var fields = [MessageDefinition.Field]()
+    
+    fields.append(MessageDefinition.Field(number: 253,
+                                     size: UInt8(MemoryLayout.size(ofValue: UInt32())),
+                                     baseType: FitBaseType.uint32.rawValue))
+    
+    if let serialNumber = serialNumber {
+      fields.append(.init(number: 3,
+                     size: UInt8(MemoryLayout.size(ofValue: serialNumber)),
+                     baseType: FitBaseType.uint32.rawValue))
+    }
+
+    if let manufacturer = manufacturer {
+      fields.append(.init(number: 2,
+                      size: UInt8(MemoryLayout.size(ofValue: manufacturer.rawValue)),
+                      baseType: FitBaseType.uint16.rawValue))
+    }
+                          
+    return MessageDefinition(fields: fields,
+                             localMessageType: localMessageNumber ?? -1,
+                             globalMessageNumber: globalMessageNumber.rawValue)
+  }
 }
 
 struct HRVMessage {

@@ -7,18 +7,64 @@
 
 import Foundation
 
-public struct FitHeader {
-  let size:              CChar
+public struct FitHeader: FitFileEntity {
+  // ".FIT".  The expected value for the "dataType" property.
+  static let FIT_HEADER_DATA_TYPE: [CChar] = [46, 70, 73, 84]
+  
+  var size:              UInt8
   let protocolVersion:   CChar
   let profileVersion:    UInt16
   let dataSize:          UInt32
   let dataType:          String
-  let CRC:               UInt16
+  var CRC:               UInt16
+  
+  public var data: Data {
+    let headerData = bodyData
+    
+    if let CRCData = crc16(headerData.toArray(type: UInt8.self), type: .ARC) {
+      return headerData + withUnsafeBytes(of: CRCData) { Data($0) }
+    }
+    
+    return Data()
+  }
+  
+  /// The data representing this header, minus the CRC.
+  var bodyData: Data {
+    let sizeData = withUnsafeBytes(of: size) { Data($0) }
+    let protocolVersionData = withUnsafeBytes(of: protocolVersion) { Data($0) }
+    let profileVersionData = withUnsafeBytes(of: profileVersion) { Data($0) }
+    let dataSizeData = withUnsafeBytes(of: dataSize) { Data($0) }
+    let dataTypeData = Data(fromArray: FitHeader.FIT_HEADER_DATA_TYPE)
+        
+    return sizeData
+         + protocolVersionData
+         + profileVersionData
+         + dataSizeData
+         + dataTypeData
+  }
+  
+  public init(protocolVersion: CChar, profileVersion: UInt16, dataSize: UInt32) {
+    self.size = 0
+    self.protocolVersion = protocolVersion
+    self.profileVersion = profileVersion
+    self.dataSize = dataSize
+    self.dataType = String(cString: FitHeader.FIT_HEADER_DATA_TYPE)
+    self.CRC = 0
+        
+    self.size = UInt8(MemoryLayout.size(ofValue: size)
+              + MemoryLayout.size(ofValue: protocolVersion)
+              + MemoryLayout.size(ofValue: profileVersion)
+              + MemoryLayout.size(ofValue: dataSize)
+              + 4 // The dataType size.
+              + MemoryLayout.size(ofValue: UInt16()))
+    
+    self.CRC = crc16(bodyData.map { $0 }, type: .ARC) ?? 0
+  }
   
   public init?(from data: Data) {
     var offset = 0
     
-    guard let size = data.to(type: CChar.self) else { return nil }
+    guard let size = data.to(type: UInt8.self) else { return nil }
     self.size = size
     offset += MemoryLayout.size(ofValue: self.size)
     
@@ -36,7 +82,7 @@ public struct FitHeader {
 
     let dataType = data[offset..<offset+4].toArray(type: CChar.self)
     self.dataType = String(cString: dataType + [0])
-    offset += 4
+    offset += dataType.count
 
     guard let crc = data[offset...].to(type: UInt16.self) else { return nil }
     self.CRC = crc
@@ -57,7 +103,7 @@ public struct FitHeader {
       print("CRC validation failed.")
       return nil
     }
-  }
+  }  
 }
 
 enum CRCType {
