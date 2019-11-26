@@ -85,10 +85,7 @@ public struct FitFile {
   }
   
   func toData() throws -> Data {
-    guard let header = header else { throw FitFileError.noHeader }
-
     var fileData = Data()
-    fileData += header.data
     
     // The file ID message definition.
     let fileIdDefinition = fileIdMessage.generateMessageDefinition()
@@ -99,8 +96,10 @@ public struct FitFile {
     
     // Add all other message definitions and message bodies.
     fileData += generateFileData()
-    fileData += Data(from: generateFileCRC(for: fileData))
     
+    fileData = FitHeader(representingFile: fileData).data + fileData
+    fileData += Data(from: generateFileCRC(for: fileData))
+
     return fileData
   }
   
@@ -168,5 +167,71 @@ public struct FitFile {
         print("Unsupported record header found.")
       }
     }
+  }
+}
+
+extension FitFile {
+  func inflateMessage(from data: Data,
+                      bytePosition: Int,
+                      headerByte: CChar,
+                      compressed: Bool) -> FitMessage? {
+    let offset = bytePosition
+        
+    let localMessageNumber: CChar
+    
+    if compressed {
+      localMessageNumber = (headerByte & MessageConstants.compressedLocalMessageNumMask) >> 5
+    } else {
+      localMessageNumber = headerByte & MessageConstants.localMessageNumMask
+    }
+
+    guard let messageDefinition = messageDefinitions[localMessageNumber] else {
+      print("Couldn't find message definition for message with local ID: \(localMessageNumber)")
+      return nil
+    }
+    
+    return inflateFields(messageDefinition: messageDefinition,
+                         data: data,
+                         bytePosition: offset)
+  }
+  
+  func inflateFields(messageDefinition: MessageDefinition,
+                     data: Data,
+                     bytePosition: Int) -> FitMessage? {
+    
+    let messageNumber = MessageNumber(rawValue: messageDefinition.globalMessageNumber)
+    let messageType: FitMessage.Type
+    
+    switch messageNumber {
+    case .fileId:
+      messageType = FileIdMessage.self
+    case .deviceInfo:
+      messageType = DeviceInfoMessage.self
+    case .activity:
+      messageType = ActivityMessage.self
+    case .session:
+      messageType = SessionMessage.self
+    case .length:
+      messageType = LengthMessage.self
+    case .lap:
+      messageType = LapMessage.self
+    case .record:
+      messageType = RecordMessage.self
+    case .event:
+      messageType = EventMessage.self
+    case .totals:
+      messageType = TotalsMessage.self
+    default:
+      print("Skipping message type \(messageNumber ?? .invalid) as Fitsy has not implemented this type.")
+      return DummyMessage(messageType: messageNumber ?? .invalid,
+                          data: data,
+                          bytePosition: bytePosition,
+                          messageDefinition: messageDefinition)
+    }
+    
+    return messageType.init(data: data,
+                            bytePosition: bytePosition,
+                            fields: messageDefinition.fields,
+                            localMessageNumber: messageDefinition.localMessageType)
   }
 }

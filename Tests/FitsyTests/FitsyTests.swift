@@ -11,7 +11,8 @@ final class FitsyTests: XCTestCase {
       
       
     let testFileURL = URL(fileURLWithPath:
-          "/Users/pmacrory/Downloads/838331718.fit")
+    "/Users/pmacrory/Downloads/FitSDKRelease_21/examples/Activity.fit")
+//          "/Users/pmacrory/Downloads/838331718.fit")
 //        "/Users/pmacrory/Downloads/fit-sdk-swift-master-2/samples/running.fit")
     let parsedFile = FitFile(url: testFileURL)
     print(parsedFile?.messages)
@@ -25,7 +26,7 @@ final class FitsyTests: XCTestCase {
     try! parsedFile.save(to: saveURL)
 
     let openedSavedFile = FitFile(url: saveURL)
-    print(openedSavedFile!.messages)
+    print(openedSavedFile!.messages.count)
   }
   
   func testTwoMessageFile() {
@@ -91,10 +92,8 @@ final class FitsyTests: XCTestCase {
                                   type: .transition,
                                   event: .cadenceHighAlert,
                                   eventType: .marker)
-    
-    let messageData = message.data
-    
-    let restoredMessage = ActivityMessage(data: messageData,
+        
+    let restoredMessage = ActivityMessage(data: message.data,
                                           bytePosition: 0,
                                           fields: message.generateMessageDefinition().fields,
                                           localMessageNumber: 0)
@@ -111,19 +110,67 @@ final class FitsyTests: XCTestCase {
     let message = DeviceInfoMessage(timestamp: Date(),
                                     serialNumber: 123456,
                                     manufacturer: .favero_electronics)
-    
-    let messageData = message.data
-    
-    let restoredMessage = DeviceInfoMessage(data: messageData,
-                                          bytePosition: 0,
-                                          fields: message.generateMessageDefinition().fields,
-                                          localMessageNumber: 0)
+        
+    let restoredMessage = DeviceInfoMessage(data: message.data,
+                                            bytePosition: 0,
+                                            fields: message.generateMessageDefinition().fields,
+                                            localMessageNumber: 0)
     
     XCTAssert(abs(message.timestamp.timeIntervalSince(restoredMessage!.timestamp)) < 1)
     XCTAssert(message.serialNumber == restoredMessage?.serialNumber)
     XCTAssert(message.manufacturer == restoredMessage?.manufacturer)
   }
   
+  func testSessionMessageSavingAndRestoring() {
+    let message = SessionMessage(timestamp: Date(),
+                                 startTime: Date(timeIntervalSinceReferenceDate: 1010101),
+                                 totalElapsedTime: 123456,
+                                 sport: .boxing,
+                                 event: .fitnessEquipment,
+                                 eventType: .marker,
+                                 totalCalories: 99)
+        
+    let restoredMessage = SessionMessage(data: message.data,
+                                         bytePosition: 0,
+                                         fields: message.generateMessageDefinition().fields,
+                                         localMessageNumber: 0)
+    
+    XCTAssert(abs(message.timestamp.timeIntervalSince(restoredMessage!.timestamp)) < 1)
+    XCTAssert(abs(message.startTime.timeIntervalSince(restoredMessage!.startTime)) < 1)
+    XCTAssert(message.totalElapsedTime == restoredMessage?.totalElapsedTime)
+    XCTAssert(message.sport == restoredMessage?.sport)
+    XCTAssert(message.event == restoredMessage?.event)
+    XCTAssert(message.eventType == restoredMessage?.eventType)
+    XCTAssert(message.totalCalories == restoredMessage?.totalCalories)
+  }
+
+  func testRecordMessageSavingAndRestoring() {
+    let message = RecordMessage(timestamp: Date(),
+                                latitude: 12,
+                                longitude: 43,
+                                distance: 101,
+                                speed: 100,
+                                totalCycles: 202,
+                                altitude: 570,
+                                heartRate: 40,
+                                cadence: 50)
+    
+    let restoredMessage = RecordMessage(data: message.data,
+                                         bytePosition: 0,
+                                         fields: message.generateMessageDefinition().fields,
+                                         localMessageNumber: 0)
+    
+    XCTAssert(abs(message.timestamp.timeIntervalSince(restoredMessage!.timestamp)) < 1)
+    XCTAssert(message.latitude?.rounded() == restoredMessage?.latitude?.rounded())
+    XCTAssert(message.longitude?.rounded() == restoredMessage?.longitude?.rounded())
+    XCTAssert(message.distance == restoredMessage?.distance)
+    XCTAssert(message.speed == restoredMessage?.speed)
+    XCTAssert(message.totalCycles == restoredMessage?.totalCycles)
+    XCTAssert(message.altitude == restoredMessage?.altitude)
+    XCTAssert(message.heartRate == restoredMessage?.heartRate)
+    XCTAssert(message.cadence == restoredMessage?.cadence)
+  }
+
     static var allTests = [
         ("testExample", testExample),
     ]

@@ -19,11 +19,48 @@ public struct SessionMessage: FitMessage {
   public var totalCalories: UInt16?
   
   public var data: Data {
-    Data()
+    var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+               + Data(from: UInt32(startTime.timeIntervalSinceReferenceDate))
+               + Data(from: totalElapsedTime)
+               + Data(from: sport.rawValue)
+               + Data(from: event.rawValue)
+               + Data(from: eventType.rawValue)
+    if let totalCalories = totalCalories {
+      result += Data(from: totalCalories)
+    }
+    
+    return result
   }
   
   public var globalMessageNumber: MessageNumber { .session }
   public var localMessageNumber: CChar?
+  
+  public init(timestamp: Date,
+              startTime: Date,
+              totalElapsedTime: UInt32,
+              sport: FitSport,
+              event: FitEvent,
+              eventType: FitEventType,
+              totalCalories: UInt16? = nil) {
+    self.timestamp = timestamp
+    self.startTime = startTime
+    self.totalElapsedTime = totalElapsedTime
+    self.sport = sport
+    self.event = event
+    self.eventType = eventType
+    self.totalCalories = totalCalories
+    
+    self.size = MemoryLayout.size(ofValue: timestamp.timeIntervalSinceReferenceDate)
+              + MemoryLayout.size(ofValue: startTime.timeIntervalSinceReferenceDate)
+              + MemoryLayout.size(ofValue: totalElapsedTime)
+              + MemoryLayout.size(ofValue: sport.rawValue)
+              + MemoryLayout.size(ofValue: event.rawValue)
+              + MemoryLayout.size(ofValue: eventType.rawValue)
+      
+    if let totalCalories = totalCalories {
+      size += MemoryLayout.size(ofValue: totalCalories)
+    }
+  }
 
   public init?(data: Data, bytePosition: Int, fields: [MessageDefinition.Field], localMessageNumber: CChar) {
     self.localMessageNumber = localMessageNumber
@@ -40,6 +77,10 @@ public struct SessionMessage: FitMessage {
       case 7:
         guard let totalElapsedTime = data[offset...].to(type: UInt32.self) else { return nil }
         self.totalElapsedTime = totalElapsedTime
+      case 5:
+        guard let sportInt = data[offset...].to(type: UInt8.self),
+              let sport = FitSport(rawValue: sportInt) else { return nil }
+        self.sport = sport
       case 0:
         guard let eventInt = data[offset...].to(type: UInt8.self),
         let event = FitEvent(rawValue: eventInt) else { return nil }
@@ -60,8 +101,40 @@ public struct SessionMessage: FitMessage {
   }
   
   public func generateMessageDefinition() -> MessageDefinition {
-    MessageDefinition(fields: [],
-                      localMessageType: 0,
-                      globalMessageNumber: MessageNumber.session.rawValue)
+    var fields = [MessageDefinition.Field]()
+    
+    fields.append(MessageDefinition.Field(number: 253,
+                                     size: UInt8(MemoryLayout.size(ofValue: UInt32())),
+                                     baseType: FitBaseType.uint32.rawValue))
+
+    fields.append(MessageDefinition.Field(number: 2,
+                                          size: UInt8(MemoryLayout.size(ofValue: UInt32())),
+                                          baseType: FitBaseType.uint32.rawValue))
+    
+    fields.append(MessageDefinition.Field(number: 7,
+                                          size:  UInt8(MemoryLayout.size(ofValue: totalElapsedTime)),
+                                          baseType: FitBaseType.uint32.rawValue))
+
+    fields.append(MessageDefinition.Field(number: 5,
+                                          size: UInt8(MemoryLayout.size(ofValue: sport.rawValue)),
+                                          baseType: FitBaseType.uint32.rawValue))
+    
+    fields.append(MessageDefinition.Field(number: 0,
+                                          size: UInt8(MemoryLayout.size(ofValue: event.rawValue)),
+                                          baseType: FitBaseType.uint8.rawValue))
+    
+    fields.append(MessageDefinition.Field(number: 1,
+                                          size: UInt8(MemoryLayout.size(ofValue: eventType.rawValue)),
+                                          baseType: FitBaseType.uint8.rawValue))
+
+    if let totalCalories = totalCalories {
+      fields.append(MessageDefinition.Field(number: 11,
+                                            size: UInt8(MemoryLayout.size(ofValue: totalCalories)),
+                                            baseType: FitBaseType.uint16.rawValue))
+    }
+
+    return MessageDefinition(fields: fields,
+                             localMessageType: localMessageNumber ?? 0,
+                             globalMessageNumber: MessageNumber.session.rawValue)
   }
 }

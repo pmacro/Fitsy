@@ -16,7 +16,7 @@ public struct FitHeader: FitFileEntity {
   let profileVersion:    UInt16
   let dataSize:          UInt32
   let dataType:          String
-  var CRC:               UInt16
+  var CRC:               UInt16?
   
   public var data: Data {
     let headerData = bodyData
@@ -41,6 +41,10 @@ public struct FitHeader: FitFileEntity {
          + profileVersionData
          + dataSizeData
          + dataTypeData
+  }
+  
+  public init(representingFile: Data) {
+    self.init(protocolVersion: 16, profileVersion: 1012, dataSize: UInt32(representingFile.count))
   }
   
   public init(protocolVersion: CChar, profileVersion: UInt16, dataSize: UInt32) {
@@ -84,10 +88,14 @@ public struct FitHeader: FitFileEntity {
     self.dataType = String(cString: dataType + [0])
     offset += dataType.count
 
-    guard let crc = data[offset...].to(type: UInt16.self) else { return nil }
-    self.CRC = crc
     let headerSizeExcludingCRC = offset
-    offset += MemoryLayout.size(ofValue: self.CRC)
+
+    // If there are an extra two bytes, we know this file does have a CRC.
+    if offset != size {
+      guard let crc = data[offset...].to(type: UInt16.self) else { return nil }
+      self.CRC = crc
+      offset += MemoryLayout<UInt16>.size
+    }
     
     // Ensure the header size is as expected.
     if self.size != offset {
@@ -95,13 +103,15 @@ public struct FitHeader: FitFileEntity {
       return nil
     }
 
-    // Now check the CRC is valid, else the file is corrupt.
-    let headerData = data[0..<headerSizeExcludingCRC].map { $0 }
-    let crcCheck = crc16(headerData, type: .ARC)
-    
-    if crcCheck != crc {
-      print("CRC validation failed.")
-      return nil
+    if let crc = self.CRC {
+      // Now check the CRC is valid, else the file is corrupt.
+      let headerData = data[0..<headerSizeExcludingCRC].map { $0 }
+      let crcCheck = crc16(headerData, type: .ARC)
+      
+      if crcCheck != crc {
+        print("CRC validation failed.")
+        return nil
+      }
     }
   }  
 }
