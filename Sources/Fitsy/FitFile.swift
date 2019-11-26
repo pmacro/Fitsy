@@ -260,7 +260,7 @@ extension FitFile {
     messages.append(messageCopy)
   }
   
-  mutating func add(messages: [FitMessage]) {
+  mutating public func add(messages: [FitMessage]) {
     messages.forEach { self.add(message: $0) }
   }
 }
