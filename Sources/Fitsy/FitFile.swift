@@ -251,15 +251,16 @@ extension FitFile {
     }
     
     var messageCopy = message
-//    definition.localMessageType = localMessageId
     messageCopy.localMessageNumber = localMessageId
     
     if shouldAddDefinition {
       messageDefinitions[localMessageId] = messageCopy.generateMessageDefinition()
     }
     
-//    messageDefinitions[definition.localMessageType] = definition
     messages.append(messageCopy)
   }
   
+  mutating func add(messages: [FitMessage]) {
+    messages.forEach { self.add(message: $0) }
+  }
 }
