@@ -400,7 +400,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "67"
             endingLineNumber = "67"
-            landmarkName = "init(data:bytePosition:fields:localMessageNumber:)"
+            landmarkName = "init(timestamp:startTime:totalElapsedTime:sport:event:eventType:totalCalories:totalDistance:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

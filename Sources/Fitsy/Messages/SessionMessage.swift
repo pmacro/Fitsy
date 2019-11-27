@@ -17,6 +17,7 @@ public struct SessionMessage: FitMessage {
   public var event: FitEvent!
   public var eventType: FitEventType!
   public var totalCalories: UInt16?
+  public var totalDistance: UInt32?
   
   public var data: Data {
     var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
@@ -27,6 +28,10 @@ public struct SessionMessage: FitMessage {
                + Data(from: eventType.rawValue)
     if let totalCalories = totalCalories {
       result += Data(from: totalCalories)
+    }
+    
+    if let totalDistance = totalDistance {
+      result += Data(from: totalDistance)
     }
     
     return result
@@ -41,7 +46,8 @@ public struct SessionMessage: FitMessage {
               sport: FitSport,
               event: FitEvent,
               eventType: FitEventType,
-              totalCalories: UInt16? = nil) {
+              totalCalories: UInt16? = nil,
+              totalDistance: UInt32? = nil) {
     self.timestamp = timestamp
     self.startTime = startTime
     self.totalElapsedTime = totalElapsedTime
@@ -49,6 +55,7 @@ public struct SessionMessage: FitMessage {
     self.event = event
     self.eventType = eventType
     self.totalCalories = totalCalories
+    self.totalDistance = totalDistance
     
     self.size = MemoryLayout.size(ofValue: timestamp.timeIntervalSinceReferenceDate)
               + MemoryLayout.size(ofValue: startTime.timeIntervalSinceReferenceDate)
@@ -59,6 +66,10 @@ public struct SessionMessage: FitMessage {
       
     if let totalCalories = totalCalories {
       size += MemoryLayout.size(ofValue: totalCalories)
+    }
+    
+    if totalDistance != nil {
+      size += MemoryLayout<UInt32>.size
     }
   }
 
@@ -90,6 +101,8 @@ public struct SessionMessage: FitMessage {
         self.eventType = FitEventType(rawValue: eventTypeInt) ?? .invalid
       case 11:
         self.totalCalories = data[offset...].to(type: UInt16.self)
+      case 9:
+        self.totalDistance = data[offset...].to(type: UInt32.self)
       default:
         break
       }
@@ -131,6 +144,12 @@ public struct SessionMessage: FitMessage {
       fields.append(MessageDefinition.Field(number: 11,
                                             size: UInt8(MemoryLayout.size(ofValue: totalCalories)),
                                             baseType: FitBaseType.uint16.rawValue))
+    }
+    
+    if totalDistance != nil {
+      fields.append(MessageDefinition.Field(number: 9,
+                                            size: UInt8(MemoryLayout<UInt32>.size),
+                                            baseType: FitBaseType.uint32.rawValue))
     }
 
     return MessageDefinition(fields: fields,

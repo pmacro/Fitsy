@@ -128,7 +128,8 @@ final class FitsyTests: XCTestCase {
                                  sport: .boxing,
                                  event: .fitnessEquipment,
                                  eventType: .marker,
-                                 totalCalories: 99)
+                                 totalCalories: 99,
+                                 totalDistance: 1000)
         
     let restoredMessage = SessionMessage(data: message.data,
                                          bytePosition: 0,
@@ -142,6 +143,7 @@ final class FitsyTests: XCTestCase {
     XCTAssert(message.event == restoredMessage?.event)
     XCTAssert(message.eventType == restoredMessage?.eventType)
     XCTAssert(message.totalCalories == restoredMessage?.totalCalories)
+    XCTAssert(message.totalDistance == restoredMessage?.totalDistance)
   }
 
   func testRecordMessageSavingAndRestoring() {
