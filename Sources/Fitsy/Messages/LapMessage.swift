@@ -55,7 +55,7 @@ public struct LapMessage: FitMessage {
       case 2:
         guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
-      case 23:
+      case 25:
         guard let sportInt = data[offset...].to(type: UInt8.self),
               let sport = FitSport(rawValue: sportInt) else { return nil }
         self.sport = sport
@@ -86,7 +86,7 @@ public struct LapMessage: FitMessage {
                                           size: UInt8(MemoryLayout.size(ofValue: UInt32())),
                                           baseType: FitBaseType.uint32.rawValue))
     
-    fields.append(MessageDefinition.Field(number: 23,
+    fields.append(MessageDefinition.Field(number: 25,
                                           size: UInt8(MemoryLayout.size(ofValue: sport.rawValue)),
                                           baseType: FitBaseType.uint8.rawValue))
     
