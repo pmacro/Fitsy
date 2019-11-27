@@ -134,6 +134,7 @@ public enum FitSport: UInt8 {
   case boxing =                                                         47
   case floorClimbing =                                                  48
   case all =                                                            254        // All is for goals only to include all sports.
+  case invalid =                                                        0xFF
 }
 
 public protocol FitFileEntity {
