@@ -173,6 +173,26 @@ final class FitsyTests: XCTestCase {
     XCTAssert(message.cadence == restoredMessage?.cadence)
   }
   
+  func testLapMessageSavingAndRestoring() {
+    let message = LapMessage(timestamp: Date(),
+                              startTime: Date(),
+                              sport: .running,
+                              event: .cadenceHighAlert,
+                              eventType: .marker)
+
+    let restoredMessage = LapMessage(data: message.data,
+                                         bytePosition: 0,
+                                         fields: message.generateMessageDefinition().fields,
+                                         localMessageNumber: 0)
+    
+    XCTAssert(abs(message.timestamp.timeIntervalSince(restoredMessage!.timestamp)) < 1)
+    XCTAssert(abs(message.startTime.timeIntervalSince(restoredMessage!.startTime)) < 1)
+    XCTAssert(message.sport == restoredMessage?.sport)
+    XCTAssert(message.event == restoredMessage?.event)
+    XCTAssert(message.eventType == restoredMessage?.eventType)
+  }
+
+  
   func testNewFileFromScratch() {
     let fileIdMessage = FileIdMessage(type: .activity,
                                       manufacturer: FitManufacturer.invalid,

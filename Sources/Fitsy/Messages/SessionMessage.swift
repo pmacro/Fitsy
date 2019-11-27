@@ -130,7 +130,7 @@ public struct SessionMessage: FitMessage {
 
     fields.append(MessageDefinition.Field(number: 5,
                                           size: UInt8(MemoryLayout.size(ofValue: sport.rawValue)),
-                                          baseType: FitBaseType.uint32.rawValue))
+                                          baseType: FitBaseType.uint8.rawValue))
     
     fields.append(MessageDefinition.Field(number: 0,
                                           size: UInt8(MemoryLayout.size(ofValue: event.rawValue)),
