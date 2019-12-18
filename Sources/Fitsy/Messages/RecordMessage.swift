@@ -104,7 +104,7 @@ public struct RecordMessage: FitMessage {
           longitude < Int32.max,
           longitude > Int32.min
         {
-          self.longitude = longitude?.semiCirclesToDegrees
+          self.longitude = longitude.semiCirclesToDegrees
         }
       case 5:
         self.distance = data[offset...].to(type: UInt32.self)
