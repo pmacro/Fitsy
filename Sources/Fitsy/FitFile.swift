@@ -26,9 +26,11 @@ public struct FitFile {
   }
   
   public init?(url: URL) {
-    if let data = FileManager.default.contents(atPath: url.path) {
+    do {
+      let data = try Data(contentsOf: url)
       self.init(data: data)
-    } else {
+    } catch (let error) {
+      print("Unable to open file: \(url.standardizedFileURL).  Error: \(error.localizedDescription)")
       return nil
     }
   }
@@ -49,6 +51,7 @@ public struct FitFile {
     
     guard let definitionHeaderByte = data[offset...].to(type: CChar.self),
       definitionHeaderByte & MessageConstants.messageDefinitionMask == MessageConstants.messageDefinitionMask else {
+      print("Unable to read fileId definition header byte.")
       return nil
     }
     
@@ -56,12 +59,17 @@ public struct FitFile {
 
     guard let fileIdMessageDefinition = MessageDefinition(data: data,
                                                           bytePosition: offset,
-                                                          headerByte: definitionHeaderByte) else { return nil }
+                                                          headerByte: definitionHeaderByte) else {
+      print("Unable to read fileId message definition.")
+      return nil
+    }
+    
     offset += fileIdMessageDefinition.size
     self.messageDefinitions[fileIdMessageDefinition.localMessageType] = fileIdMessageDefinition
    
     guard let headerByte = data[offset...].to(type: CChar.self),
       headerByte & MessageConstants.messageHeaderMask == MessageConstants.messageHeaderMask else {
+      print("Unable to read fileId message header byte.")
       return nil
     }
     
@@ -71,6 +79,7 @@ public struct FitFile {
                                              bytePosition: offset,
                                              headerByte: headerByte,
                                              compressed: false) as? FileIdMessage else {
+      print("Unable to read fileId message.")
       return nil
     }
     

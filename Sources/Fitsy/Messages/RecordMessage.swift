@@ -93,9 +93,19 @@ public struct RecordMessage: FitMessage {
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
         self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
       case 0:
-        self.latitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
+        if let latitude = data[offset...].to(type: Int32.self),
+          latitude < Int32.max,
+          latitude > Int32.min
+        {
+          self.latitude = latitude.semiCirclesToDegrees
+        }
       case 1:
-        self.longitude = data[offset...].to(type: Int32.self)?.semiCirclesToDegrees
+        if let longitude = data[offset...].to(type: Int32.self),
+          longitude < Int32.max,
+          longitude > Int32.min
+        {
+          self.longitude = longitude?.semiCirclesToDegrees
+        }
       case 5:
         self.distance = data[offset...].to(type: UInt32.self)
       case 6:

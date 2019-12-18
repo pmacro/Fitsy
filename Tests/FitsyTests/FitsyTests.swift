@@ -9,13 +9,14 @@ final class FitsyTests: XCTestCase {
     // results.
     XCTAssertEqual(Fitsy().text, "Hello, World!")
       
-      
+    let start = Date()
     let testFileURL = URL(fileURLWithPath:
-    "/Users/pmacrory/Downloads/FitSDKRelease_21/examples/Activity.fit")
+//    "/Users/pmacrory/Downloads/FitSDKRelease_21/examples/Activity.fit")
 //          "/Users/pmacrory/Downloads/838331718.fit")
+    "/Users/pmacrory/Downloads/2016-04-18_fixed.fit")
 //        "/Users/pmacrory/Downloads/fit-sdk-swift-master-2/samples/running.fit")
     let parsedFile = FitFile(url: testFileURL)
-    print(parsedFile?.messages)
+    print("Took \(Date().timeIntervalSince(start))s")
   }
   
   func testSaving() {
