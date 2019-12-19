@@ -33,7 +33,7 @@ public struct TotalsMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 0:
         self.timerTime = data[offset...].to(type: UInt32.self)
       case 1:

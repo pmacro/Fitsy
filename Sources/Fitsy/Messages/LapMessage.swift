@@ -18,8 +18,8 @@ public struct LapMessage: FitMessage {
   public var eventType: FitEventType!
   
   public var data: Data {
-    return  Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
-          + Data(from: UInt32(startTime.timeIntervalSinceReferenceDate))
+    return  Data(from: UInt32(timestamp.timeIntervalSinceFitBaseDate))
+          + Data(from: UInt32(startTime.timeIntervalSinceFitBaseDate))
           + Data(from: sport.rawValue)
           + Data(from: event.rawValue)
           + Data(from: eventType.rawValue)
@@ -51,10 +51,10 @@ public struct LapMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 2:
         guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
+        self.startTime = Date(timeIntervalSinceFitBaseDate: TimeInterval(startTimeInt))
       case 25:
         guard let sportInt = data[offset...].to(type: UInt8.self),
               let sport = FitSport(rawValue: sportInt) else { return nil }

@@ -20,8 +20,8 @@ public struct SessionMessage: FitMessage {
   public var totalDistance: UInt32?
   
   public var data: Data {
-    var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
-               + Data(from: UInt32(startTime.timeIntervalSinceReferenceDate))
+    var result = Data(from: UInt32(timestamp.timeIntervalSinceFitBaseDate))
+               + Data(from: UInt32(startTime.timeIntervalSinceFitBaseDate))
                + Data(from: totalElapsedTime)
                + Data(from: sport.rawValue)
                + Data(from: event.rawValue)
@@ -57,8 +57,8 @@ public struct SessionMessage: FitMessage {
     self.totalCalories = totalCalories
     self.totalDistance = totalDistance
     
-    self.size = MemoryLayout.size(ofValue: timestamp.timeIntervalSinceReferenceDate)
-              + MemoryLayout.size(ofValue: startTime.timeIntervalSinceReferenceDate)
+    self.size = MemoryLayout.size(ofValue: timestamp.timeIntervalSinceFitBaseDate)
+              + MemoryLayout.size(ofValue: startTime.timeIntervalSinceFitBaseDate)
               + MemoryLayout.size(ofValue: totalElapsedTime)
               + MemoryLayout.size(ofValue: sport.rawValue)
               + MemoryLayout.size(ofValue: event.rawValue)
@@ -81,10 +81,10 @@ public struct SessionMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 2:
         guard let startTimeInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.startTime = Date(timeIntervalSinceReferenceDate: TimeInterval(startTimeInt))
+        self.startTime = Date(timeIntervalSinceFitBaseDate: TimeInterval(startTimeInt))
       case 7:
         guard let totalElapsedTime = data[offset...].to(type: UInt32.self) else { return nil }
         self.totalElapsedTime = totalElapsedTime

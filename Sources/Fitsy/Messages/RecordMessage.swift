@@ -7,6 +7,17 @@
 
 import Foundation
 
+extension Date {
+  public init(timeIntervalSinceFitBaseDate: TimeInterval) {
+    // Fit dates are relative to UTC 00:00 Dec 31 1989 = -347241600.
+    self.init(timeIntervalSinceReferenceDate: 347241600 + timeIntervalSinceFitBaseDate)
+  }
+  
+  public var timeIntervalSinceFitBaseDate: TimeInterval {
+    timeIntervalSinceReferenceDate - 347241600
+  }
+}
+
 public struct RecordMessage: FitMessage {
   public var size: Int
   public var timestamp: Date!
@@ -20,7 +31,7 @@ public struct RecordMessage: FitMessage {
   public var totalCycles: UInt32?
   
   public var data: Data {
-    var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+    var result = Data(from: UInt32(timestamp.timeIntervalSinceFitBaseDate))
     
     if let latitude = latitude {
       result += Data(from: latitude.degreesToSemiCircles)
@@ -91,7 +102,7 @@ public struct RecordMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 0:
         if let latitude = data[offset...].to(type: Int32.self),
           latitude < Int32.max,

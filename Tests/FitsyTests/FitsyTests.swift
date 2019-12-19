@@ -17,6 +17,7 @@ final class FitsyTests: XCTestCase {
 //        "/Users/pmacrory/Downloads/fit-sdk-swift-master-2/samples/running.fit")
     let parsedFile = FitFile(url: testFileURL)
     print("Took \(Date().timeIntervalSince(start))s")
+    print(parsedFile?.messages.count)
   }
   
   func testSaving() {
@@ -37,7 +38,7 @@ final class FitsyTests: XCTestCase {
                                                     serialNumber: 999,
                                                     timeCreated: Date()))
     var activityMessage = ActivityMessage(totalTimerTime: 1488,
-                                          timestamp: Date(timeIntervalSinceReferenceDate: 806010397),
+                                          timestamp: Date(timeIntervalSinceFitBaseDate: 806010397),
                                           numberOfSessions: 1,
                                           type: .manual,
                                           event: .workout,
@@ -124,7 +125,7 @@ final class FitsyTests: XCTestCase {
   
   func testSessionMessageSavingAndRestoring() {
     let message = SessionMessage(timestamp: Date(),
-                                 startTime: Date(timeIntervalSinceReferenceDate: 1010101),
+                                 startTime: Date(timeIntervalSinceFitBaseDate: 1010101),
                                  totalElapsedTime: 123456,
                                  sport: .boxing,
                                  event: .fitnessEquipment,
@@ -250,6 +251,13 @@ final class FitsyTests: XCTestCase {
     XCTAssert(restoredFile?.messages[2] is RecordMessage)
     XCTAssert(restoredFile?.messages[3] is RecordMessage)
     XCTAssert(restoredFile?.messages[4] is RecordMessage)
+  }
+  
+  func testDateConversion() {
+    let d1 = Date()
+    let d2 = Date(timeIntervalSinceFitBaseDate: d1.timeIntervalSinceFitBaseDate)
+    
+    XCTAssert(d1 == d2)
   }
 
   static var allTests = [

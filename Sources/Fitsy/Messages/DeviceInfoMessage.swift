@@ -19,7 +19,7 @@ public struct DeviceInfoMessage: FitMessage {
   public var localMessageNumber: CChar?
   
   public var data: Data {
-    var result = Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+    var result = Data(from: UInt32(timestamp.timeIntervalSinceFitBaseDate))
     
     if let serialNumber = serialNumber {
       result += Data(from: serialNumber)
@@ -60,7 +60,7 @@ public struct DeviceInfoMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 2:
         guard let manufacturerInt = data[offset...].to(type: UInt16.self) else { break }
         self.manufacturer = FitManufacturer(rawValue: manufacturerInt)

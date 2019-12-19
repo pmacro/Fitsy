@@ -29,7 +29,7 @@ public struct LengthMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 0:
         guard let eventInt = data[offset...].to(type: UInt8.self) else { return nil }
         self.event = FitEvent(rawValue: eventInt) ?? FitEvent.invalid

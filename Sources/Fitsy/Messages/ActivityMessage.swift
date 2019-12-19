@@ -17,7 +17,7 @@ public struct ActivityMessage: FitMessage {
   public var eventType: FitEventType!
   
   public var data: Data {
-    return Data(from: UInt32(timestamp.timeIntervalSinceReferenceDate))
+    return Data(from: UInt32(timestamp.timeIntervalSinceFitBaseDate))
          + Data(from: totalTimerTime * 1000)
          + Data(from: numberOfSessions)
          + Data(from: type.rawValue)
@@ -42,7 +42,7 @@ public struct ActivityMessage: FitMessage {
     self.eventType = eventType
     
     self.size = MemoryLayout.size(ofValue: totalTimerTime * 1000)
-              + MemoryLayout.size(ofValue: UInt32(timestamp.timeIntervalSinceReferenceDate))
+              + MemoryLayout.size(ofValue: UInt32(timestamp.timeIntervalSinceFitBaseDate))
               + MemoryLayout.size(ofValue: numberOfSessions)
               + MemoryLayout.size(ofValue: UInt8(type.rawValue))
               + MemoryLayout.size(ofValue: UInt8(event.rawValue))
@@ -57,7 +57,7 @@ public struct ActivityMessage: FitMessage {
       switch field.number {
       case 253:
         guard let timestampInt = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timestamp = Date(timeIntervalSinceReferenceDate: TimeInterval(timestampInt))
+        self.timestamp = Date(timeIntervalSinceFitBaseDate: TimeInterval(timestampInt))
       case 0:
         guard let totalTimerTime = data[offset...].to(type: UInt32.self) else { return nil }
         self.totalTimerTime = totalTimerTime / 1000
