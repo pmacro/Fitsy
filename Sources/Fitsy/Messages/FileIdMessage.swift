@@ -23,7 +23,7 @@ public struct FileIdMessage: Equatable, FitMessage {
     let manufacturerData = Data(from: manufacturer)
     let productData = Data(from: product)
     let serialNumberData = Data(from: serialNumber)
-    let timeCreatedData = Data(from: UInt32(timeCreated.timeIntervalSince1970))
+    let timeCreatedData = Data(from: UInt32(timeCreated.timeIntervalSinceFitBaseDate))
     
     return typeData
            + manufacturerData
@@ -77,7 +77,7 @@ public struct FileIdMessage: Equatable, FitMessage {
         
       case 4:
         guard let timeCreated = data[offset...].to(type: UInt32.self) else { return nil }
-        self.timeCreated = Date(timeIntervalSince1970: TimeInterval(timeCreated))
+        self.timeCreated = Date(timeIntervalSinceFitBaseDate: TimeInterval(timeCreated))
         
       default:
         print("Unexpected field found.")
