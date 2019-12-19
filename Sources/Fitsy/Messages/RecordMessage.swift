@@ -10,11 +10,11 @@ import Foundation
 extension Date {
   public init(timeIntervalSinceFitBaseDate: TimeInterval) {
     // Fit dates are relative to UTC 00:00 Dec 31 1989 = -347241600.
-    self.init(timeIntervalSinceReferenceDate: 347241600 + timeIntervalSinceFitBaseDate)
+    self.init(timeIntervalSinceReferenceDate: timeIntervalSinceFitBaseDate - 347241600)
   }
   
   public var timeIntervalSinceFitBaseDate: TimeInterval {
-    timeIntervalSinceReferenceDate - 347241600
+    timeIntervalSinceReferenceDate + 347241600
   }
 }
 
