@@ -1,3 +1,5 @@
+**A work in progress**
+
 # Fitsy
 
 Fitsy is a pure Swift library that can read and write FIT files.  A couple of other libraries are available that offer Swift APIs to read and write FIT files.  Those may be more complete, and depending on your needs, may be better suited to your needs.
